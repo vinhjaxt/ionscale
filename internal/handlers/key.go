@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	SupportedCapabilityVersion      = 68
+	SupportedCapabilityVersion      = 48
 	NoiseCapabilityVersion          = 28
 	UnsupportedClientVersionMessage = "ionscale only support client version >= 1.48.0, please upgrade your client"
 )
