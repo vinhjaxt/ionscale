@@ -1,0 +1,46 @@
+name: vinhjaxt build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+
+    - name: Build
+      run: |
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ionscale-amd64 -trimpath -ldflags="-extldflags=-static -s -w" cmd/ionscale/main.go
+
+    # Create release
+    - name: Generate release tag
+      id: tag
+      run: |
+        sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+        sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z"
+        echo "release_tag=ActionBuild_$(date +"%Y.%m.%d_%H-%M-%S")" >> $GITHUB_OUTPUT
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        files: |
+          ./ionscale-*
+    # Done release
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
