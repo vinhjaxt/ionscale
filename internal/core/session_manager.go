@@ -100,7 +100,11 @@ func (n *pollMapSessionManager) NotifyAll(tailnetID uint64, ignoreMachineIDs ...
 	if ss := n.data[tailnetID]; ss != nil {
 		for i, p := range ss {
 			if !slices.Contains(ignoreMachineIDs, i) {
-				p <- &Ping{}
+				// vinhjaxt: non-blocking please
+				select {
+				case p <- &Ping{}:
+				default:
+				}
 			}
 		}
 	}
