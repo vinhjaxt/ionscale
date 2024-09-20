@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/bufbuild/connect-go"
 	"github.com/jsiebens/ionscale/internal/config"
 	"github.com/jsiebens/ionscale/internal/domain"
 	api "github.com/jsiebens/ionscale/pkg/gen/ionscale/v1"
+	"tailscale.com/tailcfg"
 )
 
 func (s *Service) GetDNSConfig(ctx context.Context, req *connect.Request[api.GetDNSConfigRequest]) (*connect.Response[api.GetDNSConfigResponse], error) {
@@ -87,6 +90,28 @@ func apiRoutesToDomainRoutes(routes map[string]*api.Routes) map[string][]string 
 	return result
 }
 
+func domainExtraRecordsToApiExtraRecords(cfgExtraRecords []tailcfg.DNSRecord) (extraRecords []string) {
+	for _, r := range cfgExtraRecords {
+		extraRecords = append(extraRecords, r.Name+":"+r.Type+":"+r.Value)
+	}
+	return
+}
+
+func apiExtraRecordsToDomainExtraRecords(extraRecords []string) (cfgExtraRecords []tailcfg.DNSRecord) {
+	for _, r := range extraRecords {
+		split := strings.SplitN(r, ":", 3) // domain:type:value
+		if len(split) != 3 {
+			continue
+		}
+		cfgExtraRecords = append(cfgExtraRecords, tailcfg.DNSRecord{
+			Name:  split[0],
+			Type:  split[1],
+			Value: split[2],
+		})
+	}
+	return
+}
+
 func apiDNSConfigToDomainDNSConfig(dnsConfig *api.DNSConfig) domain.DNSConfig {
 	if dnsConfig == nil {
 		return domain.DNSConfig{}
@@ -99,6 +124,7 @@ func apiDNSConfigToDomainDNSConfig(dnsConfig *api.DNSConfig) domain.DNSConfig {
 		Nameservers:       dnsConfig.Nameservers,
 		Routes:            apiRoutesToDomainRoutes(dnsConfig.Routes),
 		SearchDomains:     dnsConfig.SearchDomains,
+		ExtraRecords:      apiExtraRecordsToDomainExtraRecords(dnsConfig.ExtraRecords),
 	}
 }
 
@@ -113,5 +139,6 @@ func domainDNSConfigToApiDNSConfig(tailnet *domain.Tailnet) *api.DNSConfig {
 		Nameservers:      dnsConfig.Nameservers,
 		Routes:           domainRoutesToApiRoutes(dnsConfig.Routes),
 		SearchDomains:    dnsConfig.SearchDomains,
+		ExtraRecords:     domainExtraRecordsToApiExtraRecords(dnsConfig.ExtraRecords),
 	}
 }

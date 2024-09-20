@@ -30,6 +30,7 @@ message DNSConfig {
   string magic_dns_suffix = 5;
   bool https_certs = 6;
   repeated string search_domains = 7;
+  repeated string extra_records = 8;
 }
 
 message Routes {

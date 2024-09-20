@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/bufbuild/connect-go"
-	api "github.com/jsiebens/ionscale/pkg/gen/ionscale/v1"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/bufbuild/connect-go"
+	api "github.com/jsiebens/ionscale/pkg/gen/ionscale/v1"
+	"github.com/spf13/cobra"
 )
 
 func getDNSConfigCommand() *cobra.Command {
@@ -41,6 +42,7 @@ func setDNSConfigCommand() *cobra.Command {
 		SilenceUsage: true,
 	})
 
+	var extraRecords []string
 	var nameservers []string
 	var magicDNS bool
 	var httpsCerts bool
@@ -52,13 +54,18 @@ func setDNSConfigCommand() *cobra.Command {
 	command.Flags().BoolVarP(&httpsCerts, "https-certs", "", false, "Enable HTTPS Certificates for the specified Tailnet")
 	command.Flags().BoolVarP(&overrideLocalDNS, "override-local-dns", "", false, "When enabled, connected clients ignore local DNS settings and always use the nameservers specified for this Tailnet")
 	command.Flags().StringSliceVarP(&searchDomains, "search-domain", "", []string{}, "Custom DNS search domains.")
+	command.Flags().StringSliceVarP(&extraRecords, "extra-records", "", []string{}, "Extra DNS records. Eg: mail.domain.tld::100.123.4.5")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		var globalNameservers []string
 		var routes = make(map[string]*api.Routes)
 
 		for _, n := range nameservers {
-			split := strings.Split(n, ":")
+			if strings.HasPrefix(n, `http://`) || strings.HasPrefix(n, `https://`) { // doh
+				globalNameservers = append(globalNameservers, n)
+				continue
+			}
+			split := strings.SplitN(n, ":", 3)
 			if len(split) == 2 {
 				r, ok := routes[split[0]]
 				if ok {
@@ -66,9 +73,9 @@ func setDNSConfigCommand() *cobra.Command {
 				} else {
 					routes[split[0]] = &api.Routes{Routes: []string{split[1]}}
 				}
-			} else {
-				globalNameservers = append(globalNameservers, n)
+				continue
 			}
+			globalNameservers = append(globalNameservers, n)
 		}
 
 		req := api.SetDNSConfigRequest{
@@ -80,6 +87,7 @@ func setDNSConfigCommand() *cobra.Command {
 				Routes:           routes,
 				HttpsCerts:       httpsCerts,
 				SearchDomains:    searchDomains,
+				ExtraRecords:     extraRecords,
 			},
 		}
 		resp, err := tc.Client().SetDNSConfig(cmd.Context(), connect.NewRequest(&req))
@@ -137,6 +145,14 @@ func printDnsConfig(config *api.DNSConfig) {
 	for i, t := range config.SearchDomains {
 		if i == 0 {
 			fmt.Fprintf(w, "%s\t%s\t%s\n", "Search Domains", t, "")
+		} else {
+			fmt.Fprintf(w, "%s\t%s\t%s\n", "", t, "")
+		}
+	}
+
+	for i, t := range config.ExtraRecords {
+		if i == 0 {
+			fmt.Fprintf(w, "%s\t%s\t%s\n", "Extra DNS Records", t, "")
 		} else {
 			fmt.Fprintf(w, "%s\t%s\t%s\n", "", t, "")
 		}

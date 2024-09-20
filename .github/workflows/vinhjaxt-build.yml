@@ -22,6 +22,8 @@ jobs:
 
     - name: Build
       run: |
+        rm -f go.sum
+        go mod tidy
         go get github.com/a-h/templ/runtime
         make init
         make generate

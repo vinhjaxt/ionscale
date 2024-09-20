@@ -3,16 +3,17 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jsiebens/ionscale/internal/config"
-	"github.com/jsiebens/ionscale/internal/domain"
-	"github.com/jsiebens/ionscale/internal/util"
 	"net/netip"
 	"slices"
 	"strconv"
+	"time"
+
+	"github.com/jsiebens/ionscale/internal/config"
+	"github.com/jsiebens/ionscale/internal/domain"
+	"github.com/jsiebens/ionscale/internal/util"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/dnstype"
 	"tailscale.com/types/key"
-	"time"
 )
 
 func CopyViaJson[F any, T any](f F, t T) error {
@@ -60,6 +61,10 @@ func ToDNSConfig(m *domain.Machine, tailnet *domain.Tailnet, c *domain.DNSConfig
 		dnsConfig.Resolvers = resolvers
 	} else {
 		dnsConfig.FallbackResolvers = resolvers
+	}
+
+	if len(c.ExtraRecords) != 0 {
+		dnsConfig.ExtraRecords = c.ExtraRecords
 	}
 
 	if len(c.Routes) != 0 || certsEnabled {

@@ -4,9 +4,11 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"reflect"
+	"tailscale.com/tailcfg"
 )
 
 type DNSConfig struct {
@@ -16,6 +18,7 @@ type DNSConfig struct {
 	Nameservers       []string            `json:"nameservers"`
 	Routes            map[string][]string `json:"routes"`
 	SearchDomains     []string            `json:"search_domains"`
+	ExtraRecords      []tailcfg.DNSRecord `json:"extra_records"`
 }
 
 func (i *DNSConfig) Equal(x *DNSConfig) bool {
@@ -31,6 +34,7 @@ func (i *DNSConfig) Equal(x *DNSConfig) bool {
 		i.OverrideLocalDNS == x.OverrideLocalDNS &&
 		reflect.DeepEqual(i.Nameservers, x.Nameservers) &&
 		reflect.DeepEqual(i.Routes, x.Routes) &&
+		reflect.DeepEqual(i.ExtraRecords, x.ExtraRecords) &&
 		reflect.DeepEqual(i.SearchDomains, x.SearchDomains)
 }
 
